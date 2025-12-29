@@ -4,7 +4,7 @@ An artificial life simulator where creatures run Lisp programs, compete for food
 
 **[Live Demo →](https://douwe.com/projects/vendian)**
 
-![Vendian Screenshot](screenshot.png)
+![Vendian Screenshot](vendian.gif)
 
 ## About
 
