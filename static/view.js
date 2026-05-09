@@ -1,26 +1,38 @@
 import { toPretty } from "./lisp.js"
 
 export class View {
-  constructor(canvas, world) {
+  constructor(canvas, world, logoUrl) {
     this.canvas = canvas
     this.ctx = canvas.getContext("2d")
     this.world = world
-    
+
     this.centerX = world.width / 2
     this.centerY = world.height / 2
     this.scale = null
     this.minScale = null
-    
+
     this.running = false
     this.paused = false
-    
+    this.showSplash = true
+
     this.drag = { active: false, x: 0, y: 0, moved: false }
     this.selected = null
-    
+
     this.fps = 0
     this.frameCount = 0
     this.fpsTime = 0
-    
+
+    // Load logo for splash screen
+    if (logoUrl) {
+      this.logo = new Image()
+      this.logo.src = logoUrl
+    }
+
+    // Auto-dismiss splash after 3 seconds
+    setTimeout(() => {
+      this.showSplash = false
+    }, 3000)
+
     this.createUI()
     this.installControls()
   }
@@ -33,6 +45,8 @@ export class View {
     parent.insertBefore(wrap, this.canvas)
     wrap.appendChild(this.canvas)
     this.wrap = wrap
+    this.canvas.style.display = "block"
+    this.canvas.style.margin = "auto"
     
     const fsBtn = document.createElement("button")
     fsBtn.textContent = "fullscreen"
@@ -73,20 +87,35 @@ export class View {
   }
   
   resize() {
-    const parent = this.wrap.parentElement
-    const width = parent.clientWidth
-    const height = width * (this.world.height / this.world.width)
-    
+    const isFullscreen = document.fullscreenElement === this.wrap
+
+    let width, height
+    if (isFullscreen) {
+      const aspect = this.world.width / this.world.height
+      if (window.innerWidth / window.innerHeight > aspect) {
+        // Screen is wider than world - fit to height
+        height = window.innerHeight
+        width = height * aspect
+      } else {
+        // Screen is taller than world - fit to width
+        width = window.innerWidth
+        height = width / aspect
+      }
+    } else {
+      width = this.wrap.parentElement.clientWidth
+      height = width * (this.world.height / this.world.width)
+    }
+
     const dpr = window.devicePixelRatio || 1
     this.canvas.style.width = width + "px"
     this.canvas.style.height = height + "px"
     this.canvas.width = width * dpr
     this.canvas.height = height * dpr
-    
+
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    
+
     this.minScale = Math.min(this.width / this.world.width, this.height / this.world.height)
-    
+
     if (this.scale === null) {
       this.scale = this.minScale * 0.95
     }
@@ -182,6 +211,10 @@ export class View {
     })
     
     this.canvas.addEventListener("click", e => {
+      if (this.showSplash) {
+        this.showSplash = false
+        return
+      }
       if (this.drag.moved) return
       const p = this.eventToCanvas(e)
       this.selected = this.animalAt(p.x, p.y)
@@ -201,6 +234,10 @@ export class View {
     }, { passive: false })
     
     window.addEventListener("keydown", e => {
+      if (this.showSplash) {
+        this.showSplash = false
+        return
+      }
       if (e.key === " ") {
         this.paused = !this.paused
         e.preventDefault()
@@ -220,7 +257,7 @@ export class View {
       this.panel.style.display = "none"
       return
     }
-    
+
     this.panel.style.display = "block"
     const a = this.selected
     this.panelStats.textContent = [
@@ -232,14 +269,76 @@ export class View {
       toPretty(a.program)
     ].join("\n")
   }
-  
+
+  drawSplash() {
+    const ctx = this.ctx
+    const w = this.width
+    const h = this.height
+
+    // Dark background
+    ctx.fillStyle = "#0a0a0a"
+    ctx.fillRect(0, 0, w, h)
+
+    // Draw logo if loaded
+    if (this.logo && this.logo.complete && this.logo.naturalWidth > 0) {
+      const logoScale = Math.min(w * 0.35 / this.logo.naturalWidth, h * 0.25 / this.logo.naturalHeight)
+      const logoW = this.logo.naturalWidth * logoScale
+      const logoH = this.logo.naturalHeight * logoScale
+      const logoX = (w - logoW) / 2
+      const logoY = h * 0.08
+      ctx.drawImage(this.logo, logoX, logoY, logoW, logoH)
+    }
+
+    // Title
+    ctx.fillStyle = "#ffffff"
+    ctx.font = "bold 48px Georgia, serif"
+    ctx.textAlign = "center"
+    ctx.fillText("Vendian", w / 2, h * 0.42)
+
+    // Subtitle
+    ctx.font = "18px Georgia, serif"
+    ctx.fillStyle = "#aaaaaa"
+    ctx.fillText("An Artificial Life Simulator", w / 2, h * 0.50)
+
+    // Description
+    ctx.font = "14px Georgia, serif"
+    ctx.fillStyle = "#888888"
+    ctx.fillText("Lisp-based creatures evolving to survive", w / 2, h * 0.58)
+
+    // Controls
+    ctx.font = "13px monospace"
+    ctx.fillStyle = "#666666"
+    const controls = [
+      "Drag to pan • Scroll to zoom • Click creature to inspect",
+      "Space: Pause  |  F: Fullscreen  |  Esc: Deselect",
+    ]
+    controls.forEach((line, i) => {
+      ctx.fillText(line, w / 2, h * 0.72 + i * 20)
+    })
+
+    // Start prompt
+    ctx.font = "16px monospace"
+    ctx.fillStyle = "#ffffff"
+    const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 300)
+    ctx.globalAlpha = 0.5 + 0.5 * pulse
+    ctx.fillText("Click or press any key to start", w / 2, h * 0.88)
+    ctx.globalAlpha = 1
+    ctx.textAlign = "left"
+  }
+
   draw() {
     const ctx = this.ctx
     const w = this.width
     const h = this.height
     const s = this.scale
     const world = this.world
-    
+
+    // Show splash screen
+    if (this.showSplash) {
+      this.drawSplash()
+      return
+    }
+
     ctx.fillStyle = "#111"
     ctx.fillRect(0, 0, w, h)
     

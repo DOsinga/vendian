@@ -1,0 +1,58 @@
+<script type="text/markdown" id="info">
+name: Vendian
+description: >
+  Vendian is an a-life simulation. Every creature runs a Lisp-like program and the program evolves. The best program wins. You can write your own programs or see evolution work. Or get your friendly LLM to pitch in.
+type: alife
+github: vendian
+files:
+  - [vendian.zip, "Legacy Source code and windows executable. Requires Delphi if you want to mess around with code."]
+</script>
+
+<p>
+  Vendian is an artificial life simulator. The creatures are simple Lisp programs competing for food and reproduction.
+  <a href="#" id="more-link">[more]</a>
+</p>
+<div id="more-info" hidden>
+  <p>
+    The world is full of food, represented by green pixels. Brighter green means more food.
+    Vendians eat food to gain energy, and if they collect enough, they can reproduce. A simple creature might be:
+  </p>
+  <pre>(if (> (food-here) 0)
+  (begin (eat) (if (> (my-energy) 700) (fork 30) nil))
+  (if (> (food-ahead) 0) (move) (turn-random)))</pre>
+  <p>
+    Move toward food, eat it, reproduce when fat enough. When a creature forks, its code is copied to the
+    offspring — but with errors. Parameters change, expressions get duplicated or deleted, random code appears.
+    Mostly this kills the offspring. Sometimes it creates something better.
+  </p>
+  <p>
+    Color indicates genetic lineage — similar colors share ancestry. Gray cells are obstacles.
+  </p>
+</div>
+<p>
+    <strong>Controls:</strong>
+    Drag to pan • Scroll to zoom • Click creature to inspect • Space to pause
+</p>
+
+<canvas id="canvas"></canvas>
+
+<script type="module">
+  import { World } from "{{ static }}world.js"
+  import { View } from "{{ static }}view.js"
+
+  document.getElementById("more-link").addEventListener("click", e => {
+    e.preventDefault()
+    const info = document.getElementById("more-info")
+    info.hidden = !info.hidden
+    e.target.textContent = info.hidden ? "[more]" : "[less]"
+  })
+
+  const canvas = document.getElementById("canvas")
+  const world = new World()
+  const logoUrl = "{{ static }}logo.png"
+  const view = new View(canvas, world, logoUrl)
+
+  window.addEventListener("resize", () => view.resize())
+  view.resize()
+  view.start()
+</script>
