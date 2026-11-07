@@ -6,6 +6,12 @@ An artificial life simulator where creatures run Lisp programs, compete for food
 
 ![Vendian Screenshot](vendian.gif)
 
+## Run locally
+
+```bash
+uvx douwe vendian
+```
+
 ## About
 
 Vendian is a rewrite of a Delphi project from 2002. The original idea: if genetics is our programming code, why not use programming code for the genetics of artificial life?
